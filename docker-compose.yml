@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  api:
+    build: ./apps/api
+    container_name: dfars_api
+    restart: unless-stopped
+    env_file: ./apps/api/.env
+    volumes:
+      - ./apps/api:/app
+      - ./uploads:/uploads
+    depends_on:
+      - db
+      - minio
+    ports:
+      - "8000:8000"
+
+  web:
+    build: ./apps/web
+    container_name: dfars_web
+    restart: unless-stopped
+    env_file: ./apps/web/.env
+    volumes:
+      - ./apps/web:/app
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+
+  db:
+    image: postgres:15
+    container_name: dfars_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dfars
+      POSTGRES_PASSWORD: dfars
+      POSTGRES_DB: dfarsdb
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  minio:
+    image: minio/minio:latest
+    container_name: dfars_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  clamav:
+    image: clamav/clamav:latest
+    container_name: dfars_clamav
+    restart: unless-stopped
+    ports:
+      - "3310:3310"
+
+volumes:
+  db_data:
+  minio_data:
